@@ -1,0 +1,32 @@
+#!/bin/bash
+
+# Update git
+echo "git fetch ..."
+git fetch origin 'refs/tags/*:refs/tags/*' --prune
+
+# Today's tag
+export TZ='Asia/Tokyo'
+DATE_TAG=`date +%y.%m.%d`
+echo "Date tag: ${DATE_TAG}"
+
+# Get patch version
+EXISTING_BASE_TAG=$(git tag | grep ${DATE_TAG} | head -n 1)
+PATCH_VERSION=$(git tag | grep ${DATE_TAG} | awk -F'+' '{print $2}' | sed '/^$/d' | sort -r -n | head -n 1)
+
+if [[ -z "${EXISTING_BASE_TAG}" ]]; then
+    echo "Today's first release"
+    RELEASE_TAG=${DATE_TAG}
+else
+    if [[ -z "${PATCH_VERSION}" ]]; then
+        NEXT_PATCH_VERSION=1
+    else
+        NEXT_PATCH_VERSION=$((PATCH_VERSION+1))
+    fi
+
+    echo "Patch: +${NEXT_PATCH_VERSION}"
+    RELEASE_TAG="${DATE_TAG}+${NEXT_PATCH_VERSION}"
+fi
+
+# Push release tag
+echo "Release tag: ${RELEASE_TAG}"
+git tag ${RELEASE_TAG} && git push origin ${RELEASE_TAG} && echo "Pushed release tag"
